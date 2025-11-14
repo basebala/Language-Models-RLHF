@@ -95,30 +95,25 @@ In [Language Models Learn to Mislead Humans Via RLHF](https://arxiv.org/abs/2409
 
 **Claim we investigated**. The paper’s importance (and novelty) rests on the claim that their results are evidence of Unintended misleading behaviors (U-SOPHISTRY), rather than unrealistic experimental setups designed to elicit these behaviors. Quoting from the paper itself (emphasis ours):
 
-\begin{itemize}
-    \item “We study this phenomenon under a **standard RLHF pipeline**.”
-    \item “Many prior works study I-SOPHISTRY: while these works aim to study unintended misleading AI behaviors, they induce these behaviors intentionally with **non-standard engineering practices** and hope their conclusions can generalize to U-SOPHISTRY.”
-    \item “We study U-SOPHISTRY that naturally emerges from **standard, innocuous practices**.”
-\end{itemize}
+
+- “We study this phenomenon under a **standard RLHF pipeline**.”
+- “Many prior works study I-SOPHISTRY: while these works aim to study unintended misleading AI behaviors, they induce these behaviors intentionally with **non-standard engineering practices** and hope their conclusions can generalize to U-SOPHISTRY.”
+- “We study U-SOPHISTRY that naturally emerges from **standard, innocuous practices**.”
 
 \textbf{Our findings}. Based on inspecting the paper’s [code](https://github.com/Jiaxin-Wen/MisleadLM) and re-running experiments, it seems plausible to us that much of the observed “misleading” behavior is an artifact of a *pretty unrealistic RLHF setup*, meaning the paper would be falling under the bucket of I-SOPHISTRY once more, rather than U-SOPHISTRY:
 
-\begin{enumerate}
-    \item **In the QuALITY setting, the reward model is not given enough information to determine correctness**. During reward-model training and PPO, the “judge” sees (question, answer A, answer B, argument) **without** the story the question is about. It therefore can’t meaningfully reward correctness, but probably still rewards plausible-sounding arguments—making it easy to hack.
-    \item **In the QuALITY setting, the policy model also rarely sees enough task context to answer correctly**. The story passages are truncated so aggressively that ~86–88% of examples don’t contain enough information to determine the correct answer – which is something that one would actively be trying to avoid when training an LLM with RLHF. As a consequence, the PPO policy can’t learn to be right, so it seems natural that it would learn to be *persuasive*.
-    \item **On APPS (programming), inputs/outputs are also truncated**. ~35% of prompts – which comprise the programming problem and its tests – are truncated abruptly , and the grader only sees a short slice of the code output by the model (384 tokens). This can favor dense, or simplified code that looks good on simple test-cases while failing more thorough ones.
-\end{enumerate}
+
+1. **In the QuALITY setting, the reward model is not given enough information to determine correctness**. During reward-model training and PPO, the “judge” sees (question, answer A, answer B, argument) **without** the story the question is about. It therefore can’t meaningfully reward correctness, but probably still rewards plausible-sounding arguments—making it easy to hack.
+2. **In the QuALITY setting, the policy model also rarely sees enough task context to answer correctly**. The story passages are truncated so aggressively that ~86–88% of examples don’t contain enough information to determine the correct answer – which is something that one would actively be trying to avoid when training an LLM with RLHF. As a consequence, the PPO policy can’t learn to be right, so it seems natural that it would learn to be *persuasive*.
+3. **On APPS (programming), inputs/outputs are also truncated**. ~35% of prompts – which comprise the programming problem and its tests – are truncated abruptly , and the grader only sees a short slice of the code output by the model (384 tokens). This can favor dense, or simplified code that looks good on simple test-cases while failing more thorough ones.
 
 **Bottom line**. Ultimately, in our opinion, all three of the above would be considered to be (major) bugs in production RLHF pipelines: when curating data to train on, one would want to ensure that both reward models and policy models have enough information to actually learn desirable behaviors. Additionally, instead of making the results more conservative, we would expect each of the issues above to significantly amplify the main effect the paper is trying to measure – LLMs learning deceptive behavior when trained via RLHF – raising questions about the validity of the results. Our partial empirical results in section 3 seem to support this, showing. We also want to point out that we believe the underlying *risk* the paper points to be real. We mainly think the reported effect sizes are quite likely to be inflated by the setup.
 
 The rest of this post is structured as follows:
-\begin{itemize}
-    \item In section 2, we provide a more detailed overview of our core claims.
-    \item Section 3 contains a detailed report of the experiments we ran to verify our claims.
-    \item In section 4, we let the authors of the original paper lay out their point of view.
-    \item We conclude with an appendix containing some experiment details.
-\end{itemize}
-
+- In section 2, we provide a more detailed overview of our core claims.
+- Section 3 contains a detailed report of the experiments we ran to verify our claims.
+- In section 4, we let the authors of the original paper lay out their point of view.
+- We conclude with an appendix containing some experiment details.
 
 
 Note: please use the table of contents as defined in the front matter rather than the traditional markdown styling.

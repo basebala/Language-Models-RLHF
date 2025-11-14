@@ -1,9 +1,8 @@
 ---
 layout: distill
-title: Sample Blog Post
-description: Your blog post's abstract.
-  Please add your abstract or summary here and not in the main body of your text.
-  Do not include math/latex or hyperlinks.
+title: Do Language Models Really Learn to Mislead Humans via RLHF?
+description: This post details an investigation of claims in "Language Models Learn to Mislead Humans Via RLHF" (ICLR 2025) that RLHF may unintentionally lead LLM agents to mislead humans (U-Sophistry). We found that the misleading behavior in the paper is the result of an unrealistic experimental setup and not of U-Sophistry, and can therefore be categorized as intentional misleading (I-Sophistry).
+
 date: 2026-04-27
 future: true
 htmlwidgets: true
@@ -19,18 +18,18 @@ mermaid:
 #   - name: Anonymous
 
 authors:
-  - name: Albert Einstein
+  - name: Micah Carroll
     url: "https://en.wikipedia.org/wiki/Albert_Einstein"
     affiliations:
-      name: IAS, Princeton
-  - name: Boris Podolsky
+      name: UC Berkeley
+  - name: Lukas Fluri
     url: "https://en.wikipedia.org/wiki/Boris_Podolsky"
     affiliations:
-      name: IAS, Princeton
-  - name: Nathan Rosen
+      name: ETH Zurich
+  - name: Aaryan Chandna
     url: "https://en.wikipedia.org/wiki/Nathan_Rosen"
     affiliations:
-      name: IAS, Princeton
+      name: UC Berkeley
 
 # must be the exact same name as your blogpost
 bibliography: 2026-04-27-distill-example.bib
@@ -40,17 +39,29 @@ bibliography: 2026-04-27-distill-example.bib
 #     for hyperlinks within the post to work correctly.
 #   - please use this format rather than manually creating a markdown table of contents.
 toc:
-  - name: Equations
-  - name: Images and Figures
+  - name: Note
+  - name: Summary (TL;DR)
+  - name: Issues in experimental setup by setting
     subsections:
-      - name: Interactive Figures
-  - name: Citations
-  - name: Footnotes
-  - name: Code Blocks
-  - name: Diagrams
-  - name: Tweets
-  - name: Layouts
-  - name: Other Typography?
+      - name: QuALITY Task (with a task-specific reward model)
+      - name: QuALITY Task (with a general reward model)
+      - name: APPS Programming Task
+  - name: The full story including our (partial) empirical investigations
+    subsections:
+      - name: Background
+      - name: Potential Issues
+        subsections:
+          - name: The LLM policy does not receive enough information
+          - name: The task-specific reward model does not receive enough information
+      - name: Replicating the results without these issues
+      - name: What about the programming task?
+  - name: Appendix
+    subsections:
+      - name: Evaluating cut paragraph sufficiency
+      - name: Reward model training prompt
+      - name: Agent training prompt
+
+
 
 # Below is an example of injecting additional post-specific styles.
 # This is used in the 'Layouts' section of this post.
@@ -71,6 +82,44 @@ _styles: >
     font-size: 16px;
   }
 ---
+
+## Note
+
+We are not questioning the general claim that optimizing for human feedback will lead to incentives to mislead them – which seems clearly true theoretically, as demonstrated by recent manifestations in production systems [which seem to have been due to user feedback optimization](https://openai.com/index/expanding-on-sycophancy/) (one of the authors of this post even worked on a concurrent [paper focused on user feedback](https://arxiv.org/abs/2411.02306) rather than RLHF). That said, we are quite skeptical of the authors’ experimental setup, and don’t think the evidence of the paper is very informative of whether and how much these incentives are actually realized in real \underline{\textit{RLHF}} pipelines which optimize for annotator feedback or perfect reward signals.
+
+While we only have partial empirical evidence that fixing issues in the authors’ experimental setup invalidates the authors’ findings, we believe the bugs in the experimental pipeline are sufficient to at least threaten the validity of the conclusions on their own. After contacting the authors in June, we sat on these results for a while and finally decided to just publish everything we have right now, since we believe that this is still interesting for the broader AI safety research community.
+
+## Summary (TL;DR)
+
+In [Language Models Learn to Mislead Humans Via RLHF](https://arxiv.org/abs/2409.12822) (published at ICLR 2025) the authors’ main claim is that RLHF (Reinforcement Learning from Human Feedback) may unintentionally lead LLMs to become better at misleading humans, a phenomenon they term "U-SOPHISTRY". In particular, they provide results on tasks like question-answering ([QuALITY](https://arxiv.org/abs/2112.08608)) and programming ([APPS](https://arxiv.org/abs/2105.09938)), showing that RLHF improved the models' ability to convince human evaluators without actually improving task performance.
+
+\textbf{Claim we investigated}. The paper’s importance (and novelty) rests on the claim that their results are evidence of Unintended misleading behaviors (U-SOPHISTRY), rather than unrealistic experimental setups designed to elicit these behaviors. Quoting from the paper itself (emphasis ours):
+
+\begin{itemize}
+    \item “We study this phenomenon under a \textbf{standard RLHF pipeline}.”
+    \item “Many prior works study I-SOPHISTRY: while these works aim to study unintended misleading AI behaviors, they induce these behaviors intentionally with \textbf{non-standard engineering practices} and hope their conclusions can generalize to U-SOPHISTRY.”
+    \item “We study U-SOPHISTRY that naturally emerges from \textbf{standard, innocuous practices}.”
+\end{itemize}
+
+\textbf{Our findings}. Based on inspecting the paper’s [code](https://github.com/Jiaxin-Wen/MisleadLM) and re-running experiments, it seems plausible to us that much of the observed “misleading” behavior is an artifact of a \textit{pretty unrealistic RLHF setup}, meaning the paper would be falling under the bucket of I-SOPHISTRY once more, rather than U-SOPHISTRY:
+
+\begin{enumerate}
+    \item \textbf{In the QuALITY setting, the reward model is not given enough information to determine correctness}. During reward-model training and PPO, the “judge” sees (question, answer A, answer B, argument) \textbf{without} the story the question is about. It therefore can’t meaningfully reward correctness, but probably still rewards plausible-sounding arguments—making it easy to hack.
+    \item \textbf{In the QuALITY setting, the policy model also rarely sees enough task context to answer correctly}. The story passages are truncated so aggressively that ~86–88% of examples don’t contain enough information to determine the correct answer – which is something that one would actively be trying to avoid when training an LLM with RLHF. As a consequence, the PPO policy can’t learn to be right, so it seems natural that it would learn to be \textit{persuasive}.
+    \item \textbf{On APPS (programming), inputs/outputs are also truncated}. ~35% of prompts – which comprise the programming problem and its tests – are truncated abruptly , and the grader only sees a short slice of the code output by the model (384 tokens). This can favor dense, or simplified code that looks good on simple test-cases while failing more thorough ones.
+\end{enumerate}
+
+\textbf{Bottom line}. Ultimately, in our opinion, all three of the above would be considered to be (major) bugs in production RLHF pipelines: when curating data to train on, one would want to ensure that both reward models and policy models have enough information to actually learn desirable behaviors. Additionally, instead of making the results more conservative, we would expect each of the issues above to significantly amplify the main effect the paper is trying to measure – LLMs learning deceptive behavior when trained via RLHF – raising questions about the validity of the results. Our partial empirical results in section 3 seem to support this, showing. We also want to point out that we believe the underlying \textit{risk} the paper points to be real. We mainly think the reported effect sizes are quite likely to be inflated by the setup.
+
+The rest of this post is structured as follows:
+\begin{itemize}
+    \item In section 2, we provide a more detailed overview of our core claims.
+    \item Section 3 contains a detailed report of the experiments we ran to verify our claims.
+    \item In section 4, we let the authors of the original paper lay out their point of view.
+    \item We conclude with an appendix containing some experiment details.
+\end{itemize}
+
+
 
 Note: please use the table of contents as defined in the front matter rather than the traditional markdown styling.
 

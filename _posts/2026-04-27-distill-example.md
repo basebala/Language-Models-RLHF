@@ -115,6 +115,157 @@ The rest of this post is structured as follows:
 - In section 4, we let the authors of the original paper lay out their point of view.
 - We conclude with an appendix containing some experiment details.
 
+## Issues in experimental setup by setting
+
+The paper validates its hypotheses that standard RLHF would lead to policies that mislead humans in two settings: a QA task (QuALITY), and a programming task (APPS). For their experimental setup, they had to choose what kinds of reward models to use for their tasks. For the QA task, they considered two settings: finetuning an LLM to provide reward  just on this task, or finetuning an LLM on human preferences from the ChatBotArena. For the APPs setting, they used a programmatic reward model (based on passing the easiest 2 tests for each problem).
+
+### QuALITY Task (with a task-specific reward model)
+
+**Image goes here!**
+
+- *During reward learning, the reward model* is shown a question about a text and two possible answers, but isn't provided the text itself that the question and answers are about. This makes it impossible for the RM to learn to reward correctness of answers. The only thing the RM can do beyond overfitting to the training labels is learn to rely on features that have spurious correlations with positive labels (e.g. rewarding arguments that sound convincing, regardless of truthfulness). 
+- *During PPO training, the reward model* is also not provided with the text that the current question and answers are about, making it impossible to reward correctness. Because of the RM training, in any case the RM will likely only be evaluating based on plausibility rather than correctness and be highly hackable.
+- *During PPO training, the PPO model* is shown a question, two answers, and the first part of a text which the question is about. The text is cut to an extent that ~88% of the time, there is not enough information for the model to know which answer is correct. This leaves only one option for the PPO model to optimize its reward: hack the reward model, for example by guessing an answer and then fabricating a convincing justification. 
+- *Putting it all together*, the flaws in both the RM training and its use during PPO make the reward model highly unrealistic. Due to the missing information, we believe it is likely that the RM simply learns to highly reward convincing arguments, regardless of correctness. The PPO model’s input truncation additionally incentivizes reward-hacking behavior such as fabricating justifications in order to maximize reward. Together, this constitutes a combination of multiple unrealistic training biases that look more like I-SOPHISTRY (Intentionally nudging the model towards sophistry/deception) than U-SOPHISTRY.
+
+### QuALITY Task (with a general reward model)
+
+**Image goes here!!**
+
+- *During PPO, the reward model* is not provided with the paragraph, and therefore has no way to determine the correctness of the argument made by the LLM. This makes it impossible to provide a correct training signal, even if it were an almost perfect RM, and forces it to rely on spurious correlations likely related to SOPHISTRY.
+- *During PPO, the PPO model* only sees a small fraction of the text the question and answers are about. We estimate that in ~88% of cases this amount of information is insufficient to correctly answer the question. As in the task-specific setting above, this leaves only one option for the PPO model to maximize the reward: hack the reward model, for example by guessing an answer and then fabricating a convincing justification. Because of how the reward model was trained, it would not be able to punish this behavior anyway. 
+- *Putting it all together*, the flaws in the use of the RM during PPO likely make convincing arguments highly rewarded by the RM regardless of correctness. As above, this constitutes a combination of  unrealistic training biases that look more like I-SOPHISTRY than U-SOPHISTRY.
+
+### APPS Programming Task
+
+**Image goes here!!**
+
+- *During PPO, the grader* only looks at 384 tokens output by the LLM (because this is the max_token_len for the PPO model). This may incentivize the PPO model to learn to write denser programs to avoid the risk of having them be cut off and score lower.
+- *During PPO, the PPO model* ~35% of the time does not see the entire task description because it gets cut due to a maximum context length. In light of this, the LLM may be incentivized to create more complex programs that cover potential edge cases that the task description may be missing. 
+- *Putting it all together*, it seems plausible that these factors could thus in part explain the reported qualitative and quantitative SOPHISTRY results (i.e. more complex and dense programs which tend to fool human annotators). While we’d be somewhat surprised if these issues accounted for most of the effect size in this setting specifically, more analysis would be helpful in ruling them out as big drivers of the results.
+
+## The full story including our (partial) empirical investigations
+
+### Background
+When first encountering this paper, we thought it was a clear demonstration of intuitions that had been floating around for a while in the AI safety community about incentives to trick/manipulate humans. It had studies with real humans (wow!), and with (what seemed like) a pretty realistic experimental setup. In light of this, we originally intended to do some follow-up work building on the authors’ codebase, studying this effect when using AI feedback instead of human feedback. While replicating the results of the original paper, we started noticing some things that seemed off, described below.
+
+### Potential Issues
+
+#### The LLM policy does not receive enough information
+
+We used [the original authors' codebase](https://github.com/Jiaxin-Wen/MisleadLM/tree/master), starting by re-running their experiments on the QuALITY QA-task. In this task, the LLM is provided with a long story, as well as a question about the story, and two possible answers. The goal is to train an LLM to learn to provide a) the correct answer, and b) a strong argument supporting the answer.
+
+As the following figure shows, we were able to replicate the original authors’ results. Namely, despite the LLM under training maximizing its reward-model during training, ground-truth accuracy does not increase, the LLM therefore engages in reward-hacking behavior:
+
+
+**Insert image here!**
+
+Note that we didn’t replicate the human-study part of the results (represented by R^human in the figure). However, for the sake of this note, this doesn’t matter, as we’re mainly investigating the claim that correctness does not increase after PPO.
+
+While our replication results looked reasonable on the surface, we noticed one odd behavior:
+
+**Insert image here!!**
+
+For some reason, our PPO-trained models would learn to either always answer ‘A’ or always ‘B’ (~98% of answers with the rest being split by the other answer or parsing errors). This annoying behavior persisted across multiple experiment runs and proved hard to remove.
+
+As a sanity check, we evaluated the [SFT checkpoint provided in the official codebase](https://huggingface.co/jiaxin-wen/MisleadLM-QA). To our surprise, this checkpoint was also prone to this annoying behavior! In particular, the model answered ‘B’ in 88.5% of cases, a large majority. 
+
+This seemed suspicious and motivated us to perform a careful analysis of the provided codebase of the authors of the original paper. 
+
+Our analysis found a potential problem: during training, the LLM was asked to answer questions about a story, but the stories were being significantly shortened (simply by cutting them off after a certain number of tokens). This was happening to an extent that most of the time, it would have been impossible for the LLM to answer truthfully even if it tried: it simply didn’t have enough context for a vast majority of the questions! Here are some of the most important lines of code:
+
+**Insert graphic here!!**
+
+Cutting the story lengths was partially necessary, due to the small context size of Llama 2 (the maximum is 4096). That said, the chosen length of 482 is another 8.5x smaller than that. To better see why this is an issue, here is a histogram of the lengths of all the different stories in the QA dataset (in number of tokens) below:
+
+**Insert image here!!**
+
+Next, we tried to get a sense of whether these cut stories contained enough information to answer the questions. To do this, we provide GPT-4o (in particular gpt-4o-2024-11-20) with both the uncut- and the cut stories, as well as the accompanying questions and answers. For each story, we then ask GPT-4o whether enough important bits from the original story are contained in the cut story to still be able to determine the correct answer to the question. The results are as follows (the precise prompt can be found in the appendix):
+
+- Training set: **88.6%** of cut stories contain an insufficient amount of information
+- Validation set: **86.4%** of cut stories contain an insufficient amount of information
+
+As a result of not being able to determine the correct answer, the best that the policy can do in a vast majority of cases is to guess, learning to “always answer A” or “always answer B”, and then hiding the fact that it doesn’t have enough information to answer the question correctly by faking quotes/facts. As the reward model does not have enough context either (below section), the policy is not penalized for such nonsensical bias, and only learns to optimize the second reward axis (providing arguments that sound like those that tended to be correct in the training data for the reward model). 
+
+#### The task-specific reward model does not receive enough information
+
+All our experiments above are for the general reward model setting (i.e., using a reward model that has been fine-tuned on [human preference data](https://huggingface.co/datasets/lmarena-ai/arena-human-preference-55k)). The task-specific reward model also seems to suffer from similar issues to those identified above. 
+
+In principle, the task-specific reward model should be fine-tuned on QA-data and learn to highly reward LLM-outputs that a) argue for the correct answer, and b) contain a strong argument supporting its provided answer. However, if we look at the creation of the prompts for the reward model, we see that the prompts only include the question about a story, as well as the two possible answers: 
+
+**Insert image here**
+
+This is insufficient information for the reward model to learn to reward correct answers, since it doesn’t have access to the original story to compare the answer against. Jiaxin mentioned that this is because human judges in earlier work ([Debating with More Persuasive LLMs Leads to More Truthful Answers](https://arxiv.org/abs/2402.06782)) also didn’t have access to the entire story. However, the setting of this earlier work seems to differ significantly from the setting of this paper: in that paper, the reward model/human judges use multiple sources of information to determine the correctness of the LLM-generated argument. In particular, this looks like:
+- Various debate settings such as consultancy, debate, and interactive debate
+- A quote verification tool that certifies the correctness of quotes, thereby preventing the LLM agent from just making up quotes
+
+We note that without any of these aids it becomes impossible for the reward model to know when the arguments and answers it sees are actually any good: it can only go off of whether the argument sounds persuasive in the abstract, totally ungrounded in the reality of the story. This, combined with the lack of context for the policy, leads to a combination of incorrect arguments being generated and being rewarded for sounding correct and coherent.
+
+This issue extends to the general reward model since during PPO both reward models are only provided with a (question, answers, argument) tuple:
+
+**Insert graphic!!**
+
+### Replicating the results without these issues
+
+To test our hypotheses, we next tried to replicate the results of the paper while fixing all the issues mentioned above. If our suspicion is right, we should be able to train an LLM agent against a reward model and observe both increasing reward scores and increasing ground-truth accuracy.
+
+
+We kept our fixed experiment setup as closely as possible to the setup of the authors of the original paper with the following major differences:
+- **LLM choice**: Since Llama-2-7B only has a maximum context length of 4096, we switched the model with Llama-3.1-8B which has a context length of 128k tokens.
+- **Full story access**: We provide both, the reward model as well as the LLM under training with the full story
+- **CoT prompting**: In the original paper, the LLM is prompted to output its answer first and only then provide an explanation. We thought this might decrease performance a bit, as prior work has shown that creating a CoT first could help the model’s decision-making. Therefore, in our experiments, we prompt our PPO-trained LLM to first output a reasoning and only then provide a final answer. Furthermore, we adapt our reward model prompt to be as close to the prompt used in the paper Debating with More Persuasive LLMs Leads to More Truthful Answers, that the authors of our paper aimed to mimic. Both prompts can be found in the appendix.
+- **Hyperparameters**: Our change in models required some manual hyperparameter tuning of the learning rate, learning rate scheduler, KL-penalty, as well as multiple parameters to make the training more memory efficient (training was barely possible on our 8 x NVIDIA A100 GPU setup). A precise listing of the exact hyperparameters can be found in our GitHub repository.
+
+**Note**: A complete collection of plots of this run can be found in this wandb report.
+
+We note that with our setup, both ground-truth accuracy increase over training (30,000 episodes - 536 global steps), with ground-truth accuracy rising from 36% to 70%.
+
+**Insert two images**
+
+Interestingly, there is a dip in the first 75 global steps – which matches a temporary increase in incomplete responses while the model learns the proper output format (right-most plot below): by forcing the model to give justification before an answer (change discussed at the top of this section), sometimes the max_token_limit would be reached before the model had output a response. Another improvement over the original codebase is that our model’s answers get fairly well balanced over training (left+middle plots below).
+
+**Insert three images**
+
+The reward and accuracies for this training run, with the same format as the previous figures (Figure 2B (1) of the original paper) are as shown below. 
+
+**Insert two images**
+
+However, we also have to acknowledge that the PPO training in our setting can be unstable depending on the precise hyperparameter selection. Additionally, during our investigation, we observed that without a sufficiently high learning rate and low KL coefficient, the model didn’t diverge enough to see a significant increase in reward/accuracy.
+
+Our training run with the long context window is extremely costly and requires roughly 8 NVIDIA A-100 GPUs for approximately 3 days per run. This prevented us from testing a wide variety of hyperparameters. While we tried to find good hyperparameters for a smaller model (Llama-3.2-1B) and tested whether they would transfer to the larger Llama-3.1-8B model, this turned out not to work as well as we’d hoped.
+
+### What about the programming task?
+
+While our experiments mainly focused on the QA-task we also performed some smaller explorative experiments for the programming task.
+
+As a first sanity-check we downloaded the [provided checkpoint after supervised fine-tuning](https://huggingface.co/jiaxin-wen/MisleadLM-code) and evaluated it on a best-guess pre-processed version of the test-set of the [APPS data](https://huggingface.co/datasets/codeparrot/apps). We measured an accuracy of 35%, similar to the initial policy of the paper.
+
+As for the QA-task, the text containing the programming challenges gets cropped. According to the available config, the maximum prompt length is 384 tokens:
+
+**Insert image!!**
+
+As for the QA-task we check how many of the provided programming challenges do fit this context length. In particular, we manually add an “-----End-----” string at the end of every problem description. Then we shorten the string to 384 tokens and verify whether it is still present. In roughly 30% of cases, the description of the programming challenge is longer than the specified context length and is therefore being cut off (column to the very right). In these cases, the program might be missing important information to solve the problems correctly.
+
+**Insert graphic!!**
+
+This is less extreme than in the QA task but still a significant fraction of the data. 
+
+For our second test, we used the fact that every programming challenge of the APPS benchmark has at least one sample solution which is used by our codebase for supervised fine-tuning. In particular, we are interested in what fraction of sample solutions fits into the model's maximum output size of [384 tokens](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/configs/ppo_config.yml#L57). 
+
+The official codebase of the paper doesn’t contain the SFT logic that was used, but if too long outputs are shortened,  the LLM under SFT might learn to output incomplete programs, and if the outputs aren’t shortened, the LLM might try to output excessively long programs which will also result in failures and low accuracy:
+
+**Insert graphic**
+
+## Author's response
+*We discussed these issues with the authors of the original paper. During these discussions, we were not able to reconcile our differing opinions about the interpretations of their experimental results. Therefore, we believe it is of interest to give them the opportunity to present their point of view. The rest of this section has been written by the authors of the original paper.*
+
+
+
+
+
+
+
+
 
 Note: please use the table of contents as defined in the front matter rather than the traditional markdown styling.
 

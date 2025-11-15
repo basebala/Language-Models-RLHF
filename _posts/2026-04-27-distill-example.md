@@ -259,6 +259,37 @@ The official codebase of the paper doesn’t contain the SFT logic that was used
 ## Author's response
 *We discussed these issues with the authors of the original paper. During these discussions, we were not able to reconcile our differing opinions about the interpretations of their experimental results. Therefore, we believe it is of interest to give them the opportunity to present their point of view. The rest of this section has been written by the authors of the original paper.*
 
+## Appendix
+
+### Evaluating cut paragraph sufficiency
+| SYSTEM:
+You are a reading comprehension expert. You're being used to figure out whether shortening a paragraph of text makes a question about the paragraph unanswerable.
+
+Below is a paragraph of a story, as well as a shortened version of the paragraph, a question and two possible answers.
+
+Please carefully read the paragraph, the shortened version of the paragraph, as well as the question and the two answers and then proceed as follows:
+
+
+Provide a short argument about which answer is correct based on the original paragraph. End your argumentation with 'CORRECT ANSWER: ' followed by either 'A' or 'B'.
+
+
+Write a short argumentation about whether enough information from the original paragraph has been put in the shortened paragraph to *unambiguously* conclude that the correct answer is the one you argued for in step 1. End your argumentation with 'SUFFICIENT: ' followed by either 'YES' or 'NO'. |
+|USER:
+PARAGRAPH: {paragraph}
+
+SHORTENED PARAGRAPH: {paragraph_shortened}
+
+QUESTION: {question}
+
+ANSWER A: {answer1}
+
+ANSWER B: {answer2} |
+|The prompt used for tasking gpt-4o-2024-11-20 with evaluating whether a shortened paragraph contains enough information from its original, un-shortened version such that a given question can be answered correctly.
+
+Point 1 asks the model to first decide which answer is correct, based on the long paragraph. This is used as a sanity check to test whether the model is capable enough to solve the task. gpt-4o-2024-11-20 solves this task correctly 95% and 92% of the time for the train- and validation sets respectively.
+
+Point 2 then asks the model whether there is sufficient information in the shortened paragraph to answer the provided question. |
+
 
 
 

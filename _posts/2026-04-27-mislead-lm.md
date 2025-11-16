@@ -268,8 +268,7 @@ The official codebase of the paper doesn’t contain the SFT logic that was used
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/solution_validity.png" class="img-fluid" %}
 Every programming challenge comes with multiple sample solutions. For each challenge, we measure what fraction of sample solutions are too long for the specified output-context window. The higher this fraction, the more likely that a solution for the given challenge can’t be outputted correctly by the LLM due to the restricted window size.
 
-## Author's response
-*We discussed these issues with the authors of the original paper. During these discussions, we were not able to reconcile our differing opinions about the interpretations of their experimental results. Therefore, we believe it is of interest to give them the opportunity to present their point of view. The rest of this section has been written by the authors of the original paper.*
+hi 
 
 ## Appendix
 
@@ -374,5 +373,3 @@ USER:
 
 <answer_b>{answer_b}</answer_b>
 ```
-
-Small difference for testing!

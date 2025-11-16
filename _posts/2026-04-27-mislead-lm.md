@@ -89,7 +89,7 @@ In [Language Models Learn to Mislead Humans Via RLHF](https://arxiv.org/abs/2409
 - “Many prior works study I-SOPHISTRY: while these works aim to study unintended misleading AI behaviors, they induce these behaviors intentionally with **non-standard engineering practices** and hope their conclusions can generalize to U-SOPHISTRY.”
 - “We study U-SOPHISTRY that naturally emerges from **standard, innocuous practices**.”
 
-\textbf{Our findings}. Based on inspecting the paper’s [code](https://github.com/Jiaxin-Wen/MisleadLM)<d-cite key="misleadlm_code"></d-cite> and re-running experiments, it seems plausible to us that much of the observed “misleading” behavior is an artifact of a *pretty unrealistic RLHF setup*, meaning the paper would be falling under the bucket of I-SOPHISTRY once more, rather than U-SOPHISTRY:
+**Our findings**. Based on inspecting the paper’s [code](https://github.com/Jiaxin-Wen/MisleadLM)<d-cite key="misleadlm_code"></d-cite> and re-running experiments, it seems plausible to us that much of the observed “misleading” behavior is an artifact of a *pretty unrealistic RLHF setup*, meaning the paper would be falling under the bucket of I-SOPHISTRY once more, rather than U-SOPHISTRY:
 
 
 1. **In the QuALITY setting, the reward model is not given enough information to determine correctness**. During reward-model training and PPO, the “judge” sees (question, answer A, answer B, argument) **without** the story the question is about. It therefore can’t meaningfully reward correctness, but probably still rewards plausible-sounding arguments—making it easy to hack.

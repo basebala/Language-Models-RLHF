@@ -205,7 +205,7 @@ We note that without any of these aids it becomes impossible for the reward mode
 
 This issue extends to the general reward model since during PPO both reward models are only provided with a (question, answers, argument) tuple:
 
-{% include figure.liquid path="assets/img/2026-04-27-mislead-lm/get_judge.png" class="img-fluid" %}
+{% include figure.liquid path="assets/img/2026-04-27-mislead-lm/get_judge_scores.png" class="img-fluid" %}
 The functions [get_judge_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L84) and [get_preference_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L95)<d-cite key="misleadlm_code"></d-cite> that are responsible for querying the task-specific- and general reward models both only include the question, answers, as well as the agent’s response to their query to the reward model.
 
 ### Replicating the results without these issues

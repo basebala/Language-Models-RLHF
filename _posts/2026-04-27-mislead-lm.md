@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: Do Language Models Really Learn to Mislead Humans via RLHF?
-description: This post details an investigation of claims in "Language Models Learn to Mislead Humans Via RLHF" (ICLR 2025) that RLHF may unintentionally lead LLM agents to mislead humans (U-Sophistry). We found that the misleading behavior in the paper is the result of an unrealistic experimental setup and not of U-Sophistry, and can therefore be categorized as intentional misleading (I-Sophistry).
+description: This post details an investigation of claims in Language Models Learn to Mislead Humans Via RLHF (ICLR 2025) that RLHF may unintentionally lead LLM agents to mislead humans (U-Sophistry). We found that the misleading behavior in the paper is the result of an unrealistic experimental setup and not of U-Sophistry, and can therefore be categorized as intentional misleading (I-Sophistry).
 
 date: 2026-04-27
 future: true

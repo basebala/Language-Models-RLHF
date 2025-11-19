@@ -148,10 +148,10 @@ As the following figure shows, we were able to replicate the original authors' r
 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
-        {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/reproduced_paper.png" class="img-fluid" %}
+        {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/paper_fig_2b.png" class="img-fluid" %}
     </div>
     <div class="col-sm mt-3 mt-md-0">
-        {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/paper_fig_2b.png" class="img-fluid" %}
+        {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/reproduced_paper.png" class="img-fluid" %}
     </div>
 </div>
 
@@ -238,9 +238,16 @@ Interestingly, there is a dip in the first 75 global steps – which matches a t
 
 The reward and accuracies for this training run, with the same format as the previous figures (Figure 2B (1) of the original paper) are as shown below. 
 
-**Insert two images**
+<div class="row mt-3">
+    <div class="col-sm mt-3 mt-md-0">
+        {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/reproduced_paper.png" class="img-fluid" %}
+    </div>
+    <div class="col-sm mt-3 mt-md-0">
+        {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/accuracy_comparison.png" class="img-fluid" %}
+    </div>
+</div>
 
-However, we also have to acknowledge that the PPO training in our setting can be unstable depending on the precise hyperparameter selection. Additionally, during our investigation, we observed that without a sufficiently high learning rate and low KL coefficient, the model didn’t diverge enough to see a significant increase in reward/accuracy.
+While the accuracy of the initial policy is a bit lower in our setting compared to the original paper (49% vs. their ~52%), we manage to achieve much higher accuracy after PPO (76% vs. their ~50%). We believe the initial lower pre-PPO accuracy is mostly due to our limited SFT optimization, and could be further improved to match the results of the original paper with more effort. However, we also have to acknowledge that the PPO training in our setting can be unstable depending on the precise hyperparameter selection. Additionally, during our investigation, we observed that without a sufficiently high learning rate and low KL coefficient, the model didn’t diverge enough to see a significant increase in reward/accuracy.
 
 Our training run with the long context window is extremely costly and requires roughly 8 NVIDIA A-100 GPUs for approximately 3 days per run. This prevented us from testing a wide variety of hyperparameters. While we tried to find good hyperparameters for a smaller model (Llama-3.2-1B) and tested whether they would transfer to the larger Llama-3.1-8B model, this turned out not to work as well as we’d hoped.
 

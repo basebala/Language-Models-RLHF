@@ -154,6 +154,9 @@ As the following figure shows, we were able to replicate the original authors' r
         {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/reproduced_paper.png" class="img-fluid" %}
     </div>
 </div>
+<div class="caption">
+  Figure 2b (1) of the Paper, alongside our reproduction of the results in said figure.
+</div>
 
 Note that we didn’t replicate the human-study part of the results (represented by R^human in the figure). However, for the sake of this note, this doesn’t matter, as we’re mainly investigating the claim that correctness does not increase after PPO.
 
@@ -170,15 +173,16 @@ This seemed suspicious and motivated us to perform a careful analysis of the pro
 Our analysis found a potential problem: during training, the LLM was asked to answer questions about a story, but the stories were being significantly shortened (simply by cutting them off after a certain number of tokens). This was happening to an extent that most of the time, it would have been impossible for the LLM to answer truthfully even if it tried: it simply didn’t have enough context for a vast majority of the questions! Here are some of the most important lines of code:
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/get_prompt.png" class="img-fluid" %}
+<div class="caption" markdown="1">
+  The main issues that we suspect are responsible for this bias<d-cite key="misleadlm_code"></d-cite>:
+  - Definition of [seq_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/configs/ppo_config.yml#L2) and [max_new_tokens](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/configs/ppo_config.yml#L57)
+  - Definition of [max_prompt_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L184)
+  - Definition of the function [get_prompt()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L43) where [the paragraph gets cut](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L47C89-L47C106)
+</div>
 
 Cutting the story lengths was partially necessary, due to the small context size of Llama 2 (the maximum is 4096). That said, the chosen length of 482 is another 8.5x smaller than that. To better see why this is an issue, here is a histogram of the lengths of all the different stories in the QA dataset (in number of tokens) below:
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/paragraph_token_lengths.png" class="img-fluid" %}
-
-The main issues that we suspect are responsible for this bias<d-cite key="misleadlm_code"></d-cite>:
-- Definition of [seq_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/configs/ppo_config.yml#L2) and [max_new_tokens](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/configs/ppo_config.yml#L57)
-- Definition of [max_prompt_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L184)
-- Definition of the function [get_prompt()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L43) where [the paragraph gets cut](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L47C89-L47C106)
 
 Next, we tried to get a sense of whether these cut stories contained enough information to answer the questions. To do this, we provide GPT-4o (in particular gpt-4o-2024-11-20) with both the uncut- and the cut stories, as well as the accompanying questions and answers. For each story, we then ask GPT-4o whether enough important bits from the original story are contained in the cut story to still be able to determine the correct answer to the question. The results are as follows (the precise prompt can be found in the appendix):
 
@@ -194,7 +198,9 @@ All our experiments above are for the general reward model setting (i.e., using 
 In principle, the task-specific reward model should be fine-tuned on QA-data and learn to highly reward LLM-outputs that a) argue for the correct answer, and b) contain a strong argument supporting its provided answer. However, if we look at the creation of the prompts for the reward model, we see that the prompts only include the question about a story, as well as the two possible answers: 
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/load_data.png" class="img-fluid" %}
-Line 57 of the [load_data()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/reward/train.py#L51)<d-cite key="misleadlm_code"></d-cite> function creates a prompt for the reward model. However, the prompt is only provided with a (question, answer A, answer B) tuple and not with the story context which makes it impossible for the reward model to learn to reward the correct answer.
+<div class="caption" markdown="1">
+  Line 57 of the [load_data()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/reward/train.py#L51)<d-cite key="misleadlm_code"></d-cite> function creates a prompt for the reward model. However, the prompt is only provided with a (question, answer A, answer B) tuple and not with the story context which makes it impossible for the reward model to learn to reward the correct answer.
+</div>
 
 
 This is insufficient information for the reward model to learn to reward correct answers, since it doesn’t have access to the original story to compare the answer against. Jiaxin mentioned that this is because human judges in earlier work ([Debating with More Persuasive LLMs Leads to More Truthful Answers](https://arxiv.org/abs/2402.06782)<d-cite key="khan2024debating"></d-cite>) also didn’t have access to the entire story. However, the setting of this earlier work seems to differ significantly from the setting of this paper: in that paper, the reward model/human judges use multiple sources of information to determine the correctness of the LLM-generated argument. In particular, this looks like:
@@ -206,7 +212,9 @@ We note that without any of these aids it becomes impossible for the reward mode
 This issue extends to the general reward model since during PPO both reward models are only provided with a (question, answers, argument) tuple:
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/get_judge_scores.png" class="img-fluid" %}
-The functions [get_judge_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L84) and [get_preference_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L95)<d-cite key="misleadlm_code"></d-cite> that are responsible for querying the task-specific- and general reward models both only include the question, answers, as well as the agent’s response to their query to the reward model.
+<div class="caption" markdown="1">
+  The functions [get_judge_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L84) and [get_preference_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L95)<d-cite key="misleadlm_code"></d-cite> that are responsible for querying the task-specific- and general reward models both only include the question, answers, as well as the agent’s response to their query to the reward model.
+</div>
 
 ### Replicating the results without these issues
 
@@ -219,7 +227,7 @@ We kept our fixed experiment setup as closely as possible to the setup of the au
 - **CoT prompting**: In the original paper, the LLM is prompted to output its answer first and only then provide an explanation. We thought this might decrease performance a bit, as prior work has shown that creating a CoT first could help the model’s decision-making. Therefore, in our experiments, we prompt our PPO-trained LLM to first output a reasoning and only then provide a final answer. Furthermore, we adapt our reward model prompt to be as close to the prompt used in the paper Debating with More Persuasive LLMs Leads to More Truthful Answers, that the authors of our paper aimed to mimic. Both prompts can be found in the appendix.
 - **Hyperparameters**: Our change in models required some manual hyperparameter tuning of the learning rate, learning rate scheduler, KL-penalty, as well as multiple parameters to make the training more memory efficient (training was barely possible on our 8 x NVIDIA A100 GPU setup). A precise listing of the exact hyperparameters can be found in our GitHub repository.
 
-**Note**: A complete collection of plots of this run can be found in this wandb report.
+**Note**: A complete collection of plots of this run can be found in [this wandb report](https://wandb.ai/chandna-uc-berkeley-electrical-engineering-computer-sciences/huggingface/reports/Do-Language-Models-really-learn-to-mislead-humans-via-RLHF---VmlldzoxNDk1NzM1Ng?accessToken=wz2txjhfq1r73wjds40s3vi39w6zixib7s69m0nz2iisq6019q144b5f0cd9gd8f)<d-cite key="wandb_report"></d-cite>.
 
 We note that with our setup, both ground-truth accuracy increase over training (30,000 episodes - 536 global steps), with ground-truth accuracy rising from 36% to 70%.
 
@@ -260,7 +268,9 @@ As a first sanity-check we downloaded the [provided checkpoint after supervised 
 As for the QA-task, the text containing the programming challenges gets cropped. According to the available config, the maximum prompt length is 384 tokens:
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/preprocess_questions.png" class="img-fluid" %}
-[Line 55](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/train.py#L55) of the preprocessing function shortens the prompts. The [max_prompt_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/train.py#L166) is computed using two variables from the training config, which are defined to be [768](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/configs/ppo_config.yml#L2) and [384](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/configs/ppo_config.yml#L57)<d-cite key="misleadlm_code"></d-cite> leading to a maximum prompt length of **384**.
+<div class="caption" markdown="1">
+  [Line 55](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/train.py#L55) of the preprocessing function shortens the prompts. The [max_prompt_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/train.py#L166) is computed using two variables from the training config, which are defined to be [768](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/configs/ppo_config.yml#L2) and [384](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/configs/ppo_config.yml#L57)<d-cite key="misleadlm_code"></d-cite> leading to a maximum prompt length of **384**.
+</div>
 
 As for the QA-task we check how many of the provided programming challenges do fit this context length. In particular, we manually add an “-----End-----” string at the end of every problem description. Then we shorten the string to 384 tokens and verify whether it is still present. In roughly 30% of cases, the description of the programming challenge is longer than the specified context length and is therefore being cut off (column to the very right). In these cases, the program might be missing important information to solve the problems correctly.
 
@@ -273,7 +283,9 @@ For our second test, we used the fact that every programming challenge of the AP
 The official codebase of the paper doesn’t contain the SFT logic that was used, but if too long outputs are shortened,  the LLM under SFT might learn to output incomplete programs, and if the outputs aren’t shortened, the LLM might try to output excessively long programs which will also result in failures and low accuracy:
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/solution_validity.png" class="img-fluid" %}
-Every programming challenge comes with multiple sample solutions. For each challenge, we measure what fraction of sample solutions are too long for the specified output-context window. The higher this fraction, the more likely that a solution for the given challenge can’t be outputted correctly by the LLM due to the restricted window size.
+<div class="caption">
+  Every programming challenge comes with multiple sample solutions. For each challenge, we measure what fraction of sample solutions are too long for the specified output-context window. The higher this fraction, the more likely that a solution for the given challenge can’t be outputted correctly by the LLM due to the restricted window size.
+</div>
 
 ## Appendix
 

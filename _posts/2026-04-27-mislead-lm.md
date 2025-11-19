@@ -227,8 +227,6 @@ We kept our fixed experiment setup as closely as possible to the setup of the au
 - **CoT prompting**: In the original paper, the LLM is prompted to output its answer first and only then provide an explanation. We thought this might decrease performance a bit, as prior work has shown that creating a CoT first could help the model’s decision-making. Therefore, in our experiments, we prompt our PPO-trained LLM to first output a reasoning and only then provide a final answer. Furthermore, we adapt our reward model prompt to be as close to the prompt used in the paper Debating with More Persuasive LLMs Leads to More Truthful Answers, that the authors of our paper aimed to mimic. Both prompts can be found in the appendix.
 - **Hyperparameters**: Our change in models required some manual hyperparameter tuning of the learning rate, learning rate scheduler, KL-penalty, as well as multiple parameters to make the training more memory efficient (training was barely possible on our 8 x NVIDIA A100 GPU setup). A precise listing of the exact hyperparameters can be found in our GitHub repository.
 
-**Note**: A complete collection of plots of this run can be found in [this wandb report](https://wandb.ai/chandna-uc-berkeley-electrical-engineering-computer-sciences/huggingface/reports/Do-Language-Models-really-learn-to-mislead-humans-via-RLHF---VmlldzoxNDk1NzM1Ng?accessToken=wz2txjhfq1r73wjds40s3vi39w6zixib7s69m0nz2iisq6019q144b5f0cd9gd8f)<d-cite key="wandb_report"></d-cite>.
-
 We note that with our setup, both ground-truth accuracy increase over training (30,000 episodes - 536 global steps), with ground-truth accuracy rising from 36% to 70%.
 
 <div class="row mt-3">

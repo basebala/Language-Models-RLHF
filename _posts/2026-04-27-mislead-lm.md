@@ -173,7 +173,7 @@ This seemed suspicious and motivated us to perform a careful analysis of the pro
 Our analysis found a potential problem: during training, the LLM was asked to answer questions about a story, but the stories were being significantly shortened (simply by cutting them off after a certain number of tokens). This was happening to an extent that most of the time, it would have been impossible for the LLM to answer truthfully even if it tried: it simply didn’t have enough context for a vast majority of the questions! Here are some of the most important lines of code:
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/get_prompt.png" class="img-fluid" %}
-<div class="caption" markdown="1">
+<div class="caption" markdown="1" style="text-align: left;">
   The main issues that we suspect are responsible for this bias<d-cite key="misleadlm_code"></d-cite>:
   - Definition of [seq_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/configs/ppo_config.yml#L2) and [max_new_tokens](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/configs/ppo_config.yml#L57)
   - Definition of [max_prompt_length](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L184)

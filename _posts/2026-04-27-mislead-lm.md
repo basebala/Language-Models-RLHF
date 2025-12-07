@@ -34,6 +34,7 @@ toc:
       - name: QuALITY Task (with a task-specific reward model)
       - name: QuALITY Task (with a general reward model)
       - name: APPS Programming Task
+      - name: Our failed replication of results in the original paper (for 1 out of 1 setting we studied)
   - name: The full story including our (partial) empirical investigations
     subsections:
       - name: Background
@@ -41,13 +42,18 @@ toc:
         subsections:
           - name: The LLM policy does not receive enough information
           - name: The task-specific reward model does not receive enough information
-      - name: Replicating the results without these issues
+      - name: Failed replication of the results without these issues (for the general reward model setting)
+        subsections:
+        - name: With changes 1, 2, and 3, we get the opposite result to the original paper
+        - name: Isolating the effect of lack of full story access (change 2)
+        - name: Note on the task-specific reward model setting
       - name: What about the programming task?
   - name: Appendix
     subsections:
       - name: Evaluating cut paragraph sufficiency
       - name: Reward model training prompt
       - name: Agent training prompt
+      - name: Additional replication results - training curves and hyperparameter details
 
 
 
@@ -423,7 +429,7 @@ USER:
 <answer_b>{answer_b}</answer_b>
 ```
 
-### Additional replication results: training curves and hyperparameter details
+### Additional replication results - training curves and hyperparameter details
 
 Using a general reward model for the QuALITY task, we note that with our setup, both reward and ground-truth accuracy increase over training (30,000 episodes - 536 global steps), with ground-truth accuracy rising from 36% to 70%.
 

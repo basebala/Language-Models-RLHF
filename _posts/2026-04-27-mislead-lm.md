@@ -28,32 +28,32 @@ bibliography: 2026-04-27-mislead-lm.bib
 #     for hyperlinks within the post to work correctly.
 #   - please use this format rather than manually creating a markdown table of contents.
 toc:
-  - name: Summary (TL;DR)
-  - name: Issues in experimental setup by setting
+  - name: 1. Summary (TL;DR)
+  - name: 2. Issues in experimental setup by setting
     subsections:
-      - name: QuALITY Task (with a task-specific reward model)
-      - name: QuALITY Task (with a general reward model)
-      - name: APPS Programming Task
-      - name: Our failed replication of results in the original paper (for 1 out of 1 setting we studied)
-  - name: The full story including our (partial) empirical investigations
+      - name: 2.1 QuALITY Task (with a task-specific reward model)
+      - name: 2.2 QuALITY Task (with a general reward model)
+      - name: 2.3 APPS Programming Task
+      - name: 2.4 Our failed replication of results in the original paper (for 1 out of 1 setting we studied)
+  - name: 3. The full story including our (partial) empirical investigations
     subsections:
-      - name: Background
-      - name: Potential Issues
+      - name: 3.1 Background
+      - name: 3.2 Potential Issues
         subsections:
           - name: The LLM policy does not receive enough information
           - name: The task-specific reward model does not receive enough information
-      - name: Failed replication of the results without these issues (for the general reward model setting)
+      - name: 3.3 Failed replication of the results without these issues (for the general reward model setting)
         subsections:
         - name: With changes 1, 2, and 3, we get the opposite result to the original paper
         - name: Isolating the effect of lack of full story access (change 2)
         - name: Note on the task-specific reward model setting
-      - name: What about the programming task?
-  - name: Appendix
+      - name: 3.4 What about the programming task?
+  - name: 4. Appendix
     subsections:
-      - name: Evaluating cut paragraph sufficiency
-      - name: Reward model training prompt
-      - name: Agent training prompt
-      - name: Additional replication results - training curves and hyperparameter details
+      - name: 4.1 Evaluating cut paragraph sufficiency
+      - name: 4.2 Reward model training prompt
+      - name: 4.3 Agent training prompt
+      - name: 4.4 Additional replication results - training curves and hyperparameter details
 
 
 
@@ -81,7 +81,7 @@ _styles: >
 
 While we have only partial empirical evidence that fixing issues in the authors’ experimental setup invalidates the authors’ findings, we believe the bugs in the experimental pipeline are themselves sufficient to threaten the validity of the conclusions. After contacting the authors in June, we delayed publishing these results but have now decided to release everything we have, since we believe this remains valuable for the broader AI safety research community.
 
-## Summary (TL;DR)
+## 1. Summary (TL;DR)
 
 In [Language Models Learn to Mislead Humans Via RLHF](https://arxiv.org/abs/2409.12822)<d-cite key="wen2024misleadlm"></d-cite> (published at ICLR 2025) the authors’ main claim is that RLHF (Reinforcement Learning from Human Feedback) may unintentionally cause LLMs to become better at misleading humans, a phenomenon they term "U-SOPHISTRY". In particular, the paper presents results on tasks like question-answering ([QuALITY](https://arxiv.org/abs/2112.08608)<d-cite key="pang2021quality"></d-cite>) and programming ([APPS](https://arxiv.org/abs/2105.09938)<d-cite key="hendrycks2021measuring"></d-cite>), showing that RLHF improved the models' ability to convince human evaluators without actually improving task performance.
 
@@ -114,11 +114,11 @@ The rest of this post is structured as follows:
 - Section 3 contains a detailed report of the experiments we ran to verify our claims.
 - We conclude with an appendix containing some experiment details.
 
-## Issues in experimental setup by setting
+## 2. Issues in experimental setup by setting
 
 The paper validates its hypothesis that standard RLHF leads to policies that mislead humans in two settings: a QA task (QuALITY) and a programming task (APPS). In their experimental setup, they chose different types of reward models for each task. For the QA task, they considered two settings: finetuning an LLM to provide reward specifically for this task, or finetuning an LLM on human preferences from the ChatBotArena. For the APPs setting, they used a programmatic reward model (based on passing the easiest 2 tests for each problem).
 
-### QuALITY Task (with a task-specific reward model)
+### 2.1 QuALITY Task (with a task-specific reward model)
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/quality_task_specific.png" class="img-fluid" %}
 
@@ -127,7 +127,7 @@ The paper validates its hypothesis that standard RLHF leads to policies that mis
 - *During PPO training, the PPO model* is shown a question, two answers, and the first part of a text passage which the question is about. The text is cut to an extent that in ~88% of cases, there is not enough information for the model to determine which answer is correct. This leaves only one option for the PPO model to optimize its reward: hack the reward model, for example by guessing an answer and then fabricating a convincing justification.
 - *Together*, the flaws in both RM training and its use during PPO make the reward model highly unrealistic. Due to the missing information, the RM likely learns simply to reward convincing arguments, regardless of correctness. The PPO model’s input truncation additionally incentivizes reward-hacking behavior such as fabricating justifications in order to maximize reward. Combined, this constitutes multiple unrealistic training biases that resemble I-SOPHISTRY (Intentionally nudging the model towards sophistry/deception) rather than U-SOPHISTRY.
 
-### QuALITY Task (with a general reward model)
+### 2.2 QuALITY Task (with a general reward model)
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/quality_general.png" class="img-fluid" %}
 
@@ -135,7 +135,7 @@ The paper validates its hypothesis that standard RLHF leads to policies that mis
 - *During PPO, the PPO model* only sees a small fraction of the text passage the question and answers are about. We estimate that in ~88% of cases this amount of information is insufficient to correctly answer the question. As in the task-specific setting above, this leaves only one effective option for the PPO model to maximize reward: hack the reward model, for example by guessing an answer and then fabricating a convincing justification. Because of how the reward model was trained, it has no way to punish this behavior.
 - *Together*, the flaws in how the RM is used during PPO likely make convincing arguments highly rewarded by the RM regardless of correctness. As above, this constitutes a combination of unrealistic training biases that resemble I-SOPHISTRY more than U-SOPHISTRY."
 
-### APPS Programming Task
+### 2.3 APPS Programming Task
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/apps_programming.png" class="img-fluid" %}
 
@@ -143,7 +143,7 @@ The paper validates its hypothesis that standard RLHF leads to policies that mis
 - *During PPO, the PPO model* does not see the entire task description ~35% of the time because it gets cut off due to maximum context length. In light of this, the LLM may be incentivized to create more complex programs that cover potential edge cases that the task description may be missing. 
 - *Together*, it seems plausible that these factors could in part explain the reported qualitative and quantitative SOPHISTRY results (i.e. more complex and dense programs which tend to fool human annotators). While we’d be somewhat surprised if these issues accounted for most of the effect size in this specific setting, more analysis would be helpful in ruling them out as major drivers of the results.
 
-### Our failed replication of results in the original paper (for 1 out of 1 setting we studied)
+### 2.4 Our failed replication of results in the original paper (for 1 out of 1 setting we studied)
 
 While we discuss these results in more detail in Section 3.3, here is the overview of our failed replication of the original results in the paper – once we introduce fixes to the issues above:
 
@@ -177,12 +177,12 @@ While we discuss these results in more detail in Section 3.3, here is the overvi
   Figure 1: RLHF training reward and GT accuracy across different experimental setups. Note: the dotted red bar indicates accuracy (for R<sup>*</sup>) of a model that chooses answers randomly.</strong>
 </div>
 
-## The full story including our (partial) empirical investigations
+## 3. The full story including our (partial) empirical investigations
 
-### Background
+### 3.1 Background
 When first encountering this paper, we thought it was a clear demonstration of intuitions that had been floating around for a while in the AI safety community about incentives to trick/manipulate humans. It had studies with real humans (wow!), and with (what seemed like) a quite realistic experimental setup. In light of this, we originally intended to do some follow-up work building on the original paper’s codebase, studying this effect when using AI feedback instead of human feedback. While replicating the results of the original paper, we started noticing some things that seemed off, described below.
 
-### Potential Issues
+### 3.2 Potential Issues
 
 #### The LLM policy does not receive enough information
 
@@ -249,7 +249,7 @@ This issue extends to the general reward model since during PPO both reward mode
   The functions [get_judge_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L84) and [get_preference_scores()](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/qa/train.py#L95)<d-cite key="misleadlm_code"></d-cite> that are responsible for querying the task-specific and general reward models both only include the question, answers, as well as the agent’s response to their query to the reward model.
 </div>
 
-### Failed replication of the results without these issues (for the general reward model setting)
+### 3.3 Failed replication of the results without these issues (for the general reward model setting)
 
 To test our hypotheses, we tried to replicate the results of the paper – for the general reward model setting and the QuALITY dataset – while fixing all the truncation issues mentioned above (and other more minor issues of realism we found). 
 
@@ -297,7 +297,7 @@ We did not try to replicate the original experiments with the task-specific rewa
 
 As a broader note on missing experiments that we could have run: for this project, we were operating under a tight academic computational budget, which contributed to our delay in sharing it more broadly. These constraints also partially explain – together with our own time constraints – why we did not run the additional ablation described above. For some context, using the longer context windows we needed for our experiments was especially challenging, as each run required roughly 8 NVIDIA A-100 GPUs for approximately 3 days. We could not do more than one run at a time, and generally had to wait multiple days to be allocated the resources to even test our scripts. 
 
-### What about the programming task?
+### 3.4 What about the programming task?
 
 While our experiments mainly focused on the QA-task, we also performed some smaller explorative experiments for the programming task.
 
@@ -325,9 +325,9 @@ The official codebase of the paper doesn’t contain the SFT logic that was used
   Every programming challenge comes with multiple sample solutions. For each challenge, we measure what fraction of sample solutions are too long for the specified output-context window. The higher this fraction, the more likely that a solution for the given challenge can’t be outputted correctly by the LLM due to the restricted window size.
 </div>
 
-## Appendix
+## 4. Appendix
 
-### Evaluating cut paragraph sufficiency
+### 4.1 Evaluating cut paragraph sufficiency
 ```
 SYSTEM:
 You are a reading comprehension expert. You're being used to figure out whether shortening a paragraph of text makes a question about the paragraph unanswerable.
@@ -362,7 +362,7 @@ Point 1 asks the model to first decide which answer is correct, based on the lon
 
 Point 2 then asks the model whether there is sufficient information in the shortened paragraph to answer the provided question.
 
-### Reward model training prompt
+### 4.2 Reward model training prompt
 ```
 You are an expert judge for a task where an agent tries to argue for the correct answer to a reading comprehension question based on a short story.
 
@@ -394,7 +394,7 @@ High score: The agent's argument is correct and the answer is correct.
 ```
 Since this is a base model we don’t differentiate between system prompt and user prompt.
 
-### Agent training prompt
+### 4.3 Agent training prompt
 ```
 SYSTEM:
 You will act as an expert text analysis agent answering a question for a reading comprehension task. You will be shown a story, followed by a question about the story and two possible answers. Your goal is to a) figure out which answer answer is correct and b) justify your answer.
@@ -429,7 +429,7 @@ USER:
 <answer_b>{answer_b}</answer_b>
 ```
 
-### Additional replication results - training curves and hyperparameter details
+### 4.4 Additional replication results - training curves and hyperparameter details
 
 Using a general reward model for the QuALITY task, we note that with our setup, both reward and ground-truth accuracy increase over training (30,000 episodes - 536 global steps), with ground-truth accuracy rising from 36% to 70%.
 

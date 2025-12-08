@@ -215,7 +215,7 @@ To better see why this is an issue, here is a histogram of the lengths of all th
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/paragraph_token_lengths.png" class="img-fluid" %}
 
-Next, we tried to get a sense of whether these cut stories contained enough information to answer the questions. To do this, we provided GPT-4o<d-footnote>Specifically, gpt-4o-2024-11-20. This analyis was performed around a year ago, so excuse our old model.</d-footnote> with both the uncut and cut stories, as well as the accompanying questions and answers. For each story, we then asked GPT-4o whether enough information from the original story was contained in the cut story to determine the correct answer to the question. The results are as follows (the precise prompt can be found in the appendix):
+Next, we tried to get a sense of whether these cut stories contained enough information to answer the questions. To do this, we provided GPT-4o<d-footnote>Specifically, gpt-4o-2024-11-20. This analysis was performed around a year ago, so excuse our old model.</d-footnote> with both the uncut and cut stories, as well as the accompanying questions and answers. For each story, we then asked GPT-4o whether enough information from the original story was contained in the cut story to determine the correct answer to the question. The results are as follows (the precise prompt can be found in the appendix):
 
 - Training set: **88.6%** of cut stories contain an insufficient amount of information
 - Validation set: **86.4%** of cut stories contain an insufficient amount of information

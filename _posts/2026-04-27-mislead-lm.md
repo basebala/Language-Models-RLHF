@@ -18,7 +18,9 @@ mermaid:
 #   - name: Anonymous
 
 authors:
-  - name: Aaryan Chandna, Lukas Fluri, and Micah Carroll
+  - name: Aaryan Chandna
+  - name: Lukas Fluri
+  - name: Micah Carroll
 
 # must be the exact same name as your blogpost
 bibliography: 2026-04-27-mislead-lm.bib

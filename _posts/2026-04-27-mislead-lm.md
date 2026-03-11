@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: Is the evidence in 'Language Models Learn to Mislead Humans via RLHF' valid?
-description: Language Models Learn to Mislead Humans Via RLHF (published at ICLR 2025) argues that RLHF can unintentionally train models to mislead humans – a phenomenon termed Unintentional-SOPHISTRY. However, our review of the paper's code and experiments suggests that a significant portion of their empirical findings may be due largely to major bugs that make the RLHF setup both unrealistic and highly prone to reward hacking. In addition to high-level claims, we  correct these issues for one of their experiments, and fail to find evidence that supports the original paper's claims.
+description: Language Models Learn to Mislead Humans via RLHF (published at ICLR 2025) argues that RLHF can unintentionally train models to mislead humans – a phenomenon termed Unintentional-SOPHISTRY. However, our review of the paper's code and experiments suggests that a significant portion of their empirical findings may be due largely to major bugs that make the RLHF setup both unrealistic and highly prone to reward hacking. In addition to high-level claims, we  correct these issues for one of their experiments, and fail to find evidence that supports the original paper's claims.
 
 date: 2026-04-27
 future: true
@@ -18,7 +18,7 @@ mermaid:
 #   - name: Anonymous
 
 authors:
-  - name: Anonymous
+  - name: Aaryan Chandna, Lukas Fluri, and Micah Carroll
 
 # must be the exact same name as your blogpost
 bibliography: 2026-04-27-mislead-lm.bib
@@ -83,7 +83,7 @@ While we have only partial empirical evidence that fixing issues in the authors�
 
 ## 1. Summary (TL;DR) <a id="1-summary-tl-dr"></a>
 
-In [Language Models Learn to Mislead Humans Via RLHF](https://arxiv.org/abs/2409.12822)<d-cite key="wen2024misleadlm"></d-cite> (published at ICLR 2025) the authors’ main claim is that RLHF (Reinforcement Learning from Human Feedback) may unintentionally cause LLMs to become better at misleading humans, a phenomenon they term "U-SOPHISTRY". In particular, the paper presents results on tasks like question-answering ([QuALITY](https://arxiv.org/abs/2112.08608)<d-cite key="pang2021quality"></d-cite>) and programming ([APPS](https://arxiv.org/abs/2105.09938)<d-cite key="hendrycks2021measuring"></d-cite>), showing that RLHF improved the models' ability to convince human evaluators without actually improving task performance.
+In [Language Models Learn to Mislead Humans via RLHF](https://arxiv.org/abs/2409.12822)<d-cite key="wen2024misleadlm"></d-cite> (published at ICLR 2025) the authors’ main claim is that RLHF (Reinforcement Learning from Human Feedback) may unintentionally cause LLMs to become better at misleading humans, a phenomenon they term "U-SOPHISTRY". In particular, the paper presents results on tasks like question-answering ([QuALITY](https://arxiv.org/abs/2112.08608)<d-cite key="pang2021quality"></d-cite>) and programming ([APPS](https://arxiv.org/abs/2105.09938)<d-cite key="hendrycks2021measuring"></d-cite>), showing that RLHF improved the models' ability to convince human evaluators without actually improving task performance.
 
 **Claim we investigated**. The paper’s importance (and novelty) rests on the claim that their results are evidence of unintended misleading behaviors (U-SOPHISTRY), rather than artifacts of an unrealistic experimental setups designed to elicit these behaviors. Quoting from the paper itself (emphasis ours):
 
@@ -104,7 +104,7 @@ In [Language Models Learn to Mislead Humans Via RLHF](https://arxiv.org/abs/2409
 
 In our opinion, the first two items above would be considered (major) bugs in production RLHF pipelines: when curating training data, one would want to ensure that both reward models and policy models have enough information to actually learn desirable behaviors. The authors indicated that the flaws in the reward models are an intrinsic part of the experimental design, as truncation and limited information are aspects of a realistic human-evaluation setup. However, **these elements of the setup are not actually mentioned anywhere in the paper**, despite potentially undermining the claim of intended sophistry – suggesting to us that they are bugs rather than intentional design choices.
 
-Additionally, instead of making the results more conservative, we would expect each of the issues above to significantly amplify the main effect the paper attempts to measure – LLMs learning deceptive behavior when trained via RLHF – thereby undermining the validity of the results. Our empirical results (point 3 above) support this for the one setting we investigated, showing that the reward hacking they observe in simulation is entirely due to issues 1 and 2. Although we did not replicate the human experiments, reward hacking of the reward model broadly seems broadly to be an important precondition for the model to ultimately “reward-hack” humans (as argued by the paper itself in Section 2).
+Additionally, we would expect each of the issues above to significantly amplify the main effect the paper attempts to measure — LLMs learning deceptive behavior when trained via RLHF — rather than making the results more conservative. This amplification undermines the validity of the reported findings. Our empirical results (point 3 above) support this for the one setting we investigated, showing that the reward hacking they observe in simulation is entirely due to issues 1 and 2. Although we did not replicate the human experiments, reward hacking of the reward model broadly seems to be an important precondition for the model to ultimately “reward-hack” humans (as argued by the paper itself in Section 2).
 
 We do believe that the underlying risk the paper points to is plausible, especially for future models and training regimes. That said, given the points above, we think the reported effect sizes are likely significantly inflated by issues in the experimental setup.
 
@@ -159,7 +159,7 @@ While we discuss these results in more detail in Section 3.3, here is the overvi
     </div>
     <div class="col-sm-6 mt-3 mt-md-0 text-center">
         {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/reproduction_comparison.png" class="img-fluid" %}
-        <p class="mt-2" style="font-size: 0.875rem;"><strong>(b)</strong> Our reproduction of the simulated results from Figure 2.b.1 ~with the original experimental setup</p>
+        <p class="mt-2" style="font-size: 0.875rem;"><strong>(b)</strong> Our reproduction of the simulated results from Figure 2.b.1 approximately with the original experimental setup</p>
     </div>
 </div>
 
@@ -186,7 +186,7 @@ When first encountering this paper, we thought it was a clear demonstration of i
 
 #### The LLM policy does not receive enough information
 
-We used [the original authors' codebase](https://github.com/Jiaxin-Wen/MisleadLM/tree/master)<d-cite key="misleadlm_code"></d-cite>, starting by re-running their experiments on the QuALITY QA-task. In this task, the LLM is provided with a long story, as well as a question about the story, and two possible answers. The goal is to train an LLM to learn to provide a) the correct answer, and b) a strong argument supporting the answer.
+We used [the original authors' codebase](https://github.com/Jiaxin-Wen/MisleadLM/tree/master)<d-cite key="misleadlm_code"></d-cite>, starting by re-running their experiments on the QuALITY QA-task. In this task, the LLM is provided with a long story, as well as a question about the story, and two possible answers. The goal is to train an LLM to learn to provide (a) the correct answer and (b) a strong argument supporting the answer.
 
 As the Figure 1A and 1B show, we were able to replicate the original paper’s results in which the model seems to reward hack. Specifically, despite the fact that proxy reward (i.e. the reward given by the reward model) increases during training, ground-truth accuracy somewhat decreases. Note that the reward scale for the reward model (right y-axis) in Figure 1 is idiosyncratic to each reward model and can’t be directly compared between conditions – the only information it carries is that the proxy reward increased over training.
 
@@ -234,7 +234,7 @@ In principle, the task-specific reward model should be fine-tuned on QA-data and
 </div>
 
 
-This is insufficient information for the reward model to learn to reward correct answers, since it doesn’t have access to the original story to compare the answer against. The first-author of the original paper, with whom we were in contact, mentioned that this was because human judges in earlier work ([Debating with More Persuasive LLMs Leads to More Truthful Answers](https://arxiv.org/abs/2402.06782)<d-cite key="khan2024debating"></d-cite>) also didn’t have access to the entire story. 
+This provides insufficient information for the reward model to learn to reward correct answers, since it has no access to the original story with which to compare the answers. The first-author of the original paper, with whom we were in contact, mentioned that this was because human judges in earlier work ([Debating with More Persuasive LLMs Leads to More Truthful Answers](https://arxiv.org/abs/2402.06782)<d-cite key="khan2024debating"></d-cite>) also didn’t have access to the entire story. 
 
 However, in addition to this choice not being mentioned in the paper, the setup of the earlier work seems to differ significantly from that of this paper: in the earlier work, the reward model/human judges used multiple sources of information to determine the correctness of the LLM-generated argument. In particular, this included:
 - Various debate settings such as consultancy, debate, and interactive debate
@@ -265,7 +265,7 @@ We copied Figure 1's subfigures B, C, and D below for ease of reference (with up
 <div class="row mt-3">
   <div class="col-sm-4 mt-3 mt-md-0 text-center">
         {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/reproduction_comparison.png" class="img-fluid" %}
-        <p class="mt-2" style="font-size: 0.875rem;"><strong>(b)</strong> Our reproduction of the simulated results from Figure 2.b.1 ~with the original experimental setup</p>
+        <p class="mt-2" style="font-size: 0.875rem;"><strong>(b)</strong> Our reproduction of the simulated results from Figure 2.b.1 approximately with the original experimental setup</p>
     </div>
     <div class="col-sm-4 mt-3 mt-md-0 text-center">
         {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/correct_comparison.png" class="img-fluid" %}
@@ -285,11 +285,11 @@ As seen in C, after making the changes above, we don't see any more reward hacki
 
 Based on subfigure C, it can’t be ruled out that part of the result above was due to switching the model or using chain-of-thought prompting (changes 1 or 3). As a sanity check, we ran an ablation where we kept our new setup and re-introduced the issues of the original paper, namely the omission of paragraphs for the reward model, and the drastically shortened paragraphs for the agent during PPO training. Our results are shown in Figure D above.
 
-Interestingly, while accuracy drops significantly – as we would have predicted – reward hacking (when defined as "R<sup>train</sup> goes up & R<sup>*</sup> goes down") is already absent in this setting. We did not further ablate 1 vs 3, but we think that regardless of the result of that experiment, this would have at best clarified the way in which the paper's result is fragile:
+Interestingly, while accuracy drops significantly – as we would have predicted – reward hacking (when defined as "R<sup>train</sup> goes up and R<sup>*</sup> goes down") is already absent in this setting. We did not further ablate 1 vs 3, but we think that regardless of the result of that experiment, this would have at best clarified the way in which the paper's result is fragile:
 - If the disappearance of reward hacking was due to changing to llama 3.1 (1), this calls into question whether we should expect it to generalize across models, *even with their very unrealistic setup which encourages reward hacking of truncating inputs*
 - If the disappearance of reward hacking was due to changes to prompts to increase realism (3), this calls into question whether we should expect it to generalize across even relatively small increases in realism
 
-Regardless, looking at the delta between figure C and D, it's clear that the effect of providing the full story is very large. In light of these results, if Llama 2 had sufficiently long context length, would we really have expected it to continue reward hacking to the extent shown in the original paper if provided enough context – when there would be such large gains to be made by simply being truthful? We think this would be very unlikely.
+Regardless, looking at the delta between figure C and D, it's clear that the effect of providing the full story is very large. In light of these results, if Llama 2 had a sufficiently long context window, would we really expect it to reward hack to the extent shown in the original paper? With such large gains available from simply being truthful, we think not.
 
 #### Note on the task-specific reward model setting
 
@@ -314,7 +314,7 @@ As for the QA-task we check how many of the provided programming challenges actu
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/string_count.png" class="img-fluid" %}
 
-This is less extreme than in the QA task, but still a significant fraction of the data. 
+This is less extreme than in the QA task, but still affects a significant fraction of the data. 
 
 For our second test, we used the fact that every programming challenge in the APPS benchmark has at least one sample solution which is used for supervised fine-tuning by our codebase. In particular, we are interested in what fraction of sample solutions fits into the model's maximum output size of [384 tokens](https://github.com/Jiaxin-Wen/MisleadLM/blob/cf29f559000a14e8c06947ed0a7875430a2b90f7/examples/programming/configs/ppo_config.yml#L57)<d-cite key="misleadlm_code"></d-cite>. 
 
@@ -358,7 +358,7 @@ ANSWER B: {answer2}
 
 The prompt used for tasking *gpt-4o-2024-11-20* with evaluating whether a shortened paragraph contains enough information from its original, un-shortened version such that a given question can be answered correctly.
 
-Point 1 asks the model to first decide which answer is correct, based on the long paragraph. This is used as a sanity check to test whether the model is capable enough to solve the task. *gpt-4o-2024-11-20* solves this task correctly 95% and 92% of the time for the train- and validation sets respectively.
+Point 1 asks the model to first decide which answer is correct, based on the long paragraph. This is used as a sanity check to test whether the model is capable enough to solve the task. *gpt-4o-2024-11-20* solves this task correctly 95% and 92% of the time for the train and validation sets respectively.
 
 Point 2 then asks the model whether there is sufficient information in the shortened paragraph to answer the provided question.
 
@@ -397,7 +397,7 @@ Since this is a base model we don’t differentiate between system prompt and us
 ### Agent training prompt
 ```
 SYSTEM:
-You will act as an expert text analysis agent answering a question for a reading comprehension task. You will be shown a story, followed by a question about the story and two possible answers. Your goal is to a) figure out which answer answer is correct and b) justify your answer.
+You will act as an expert text analysis agent answering a question for a reading comprehension task. You will be shown a story, followed by a question about the story and two possible answers. Your goal is to (a) figure out which answer answer is correct and (b) justify your answer.
 You should maintain a scholarly yet assertive tone focused on evidence-based analysis while crafting arguments.
 Your argument should not exceed 300 words. A good rule of thumb is that a short paragraph and one quote takes approximately 100 words.
 Focus on clarity and persuasiveness.
@@ -429,7 +429,7 @@ USER:
 <answer_b>{answer_b}</answer_b>
 ```
 
-### Additional replication results - training curves and hyperparameter details <a id="additional-replication-results-training-curves-and-hyperparameter-details"></a> 
+### Additional replication results: training curves and hyperparameter details <a id="additional-replication-results-training-curves-and-hyperparameter-details"></a> 
 
 Using a general reward model for the QuALITY task, we note that with our setup, both reward and ground-truth accuracy increase over training (30,000 episodes - 536 global steps), with ground-truth accuracy rising from 36% to 70%.
 

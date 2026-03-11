@@ -226,7 +226,7 @@ Unable to determine the correct answer, the best the policy can do in a vast maj
 
 All our experiments above are for the general reward model setting (i.e., using a reward model that has been fine-tuned on [human preference data](https://huggingface.co/datasets/lmarena-ai/arena-human-preference-55k)<d-cite key="chiang2024chatbot"></d-cite>). The task-specific reward model also seems to suffer from similar issues to those identified above. 
 
-In principle, the task-specific reward model should be fine-tuned on QA-data and learn to highly reward LLM-outputs that a) argue for the correct answer, and b) contain a strong argument supporting its provided answer. However, if we look at the creation of the prompts for the reward model, we see that the prompts only include a question about a story, as well as the two possible answers: 
+In principle, the task-specific reward model should be fine-tuned on QA-data and learn to highly reward LLM-outputs that (a) argue for the correct answer and (b) contain a strong argument supporting its provided answer. However, if we look at the creation of the prompts for the reward model, we see that the prompts only include a question about a story, as well as the two possible answers: 
 
 {% include figure.liquid path="assets/img/2026-04-27-mislead-lm/load_data.png" class="img-fluid" %}
 <div class="caption" markdown="1">
